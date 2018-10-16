@@ -1,0 +1,162 @@
+  <!DOCTYPE html>
+<html>
+<head>
+<meta name="description" content="Visualization of Gun Homicide in the United States by state in 2013">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+<style id="jsbin-css">
+.bar {
+  fill: SteelBlue;
+  stroke: black;
+}
+
+.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    padding: 2px;				
+    font: 12px monospace;		
+    background: salmon;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+</style>
+</head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.3/d3.min.js"></script>
+<body>
+<div id="chart">
+  <svg>
+  </svg>
+</div>
+  <script id="jsbin-javascript">
+d3.csv("https://raw.githubusercontent.com/jamesqo/gun-violence-data/master/intermediate/stage2.2013.csv", function (gun_data) {
+  
+  var data = gun_data
+    .map(function(d) {
+      return {
+        "state": d.state,
+        "n_killed": d.n_killed
+      };
+    })
+    .reduce(function(a, b) {
+      a[b.state] = (a[b.state] || 0) + Number(b.n_killed);
+      return a;
+    }, {});
+  
+  var keys = Object.keys(data);
+  
+  var finalData = [];
+  
+  keys.forEach(function(x) {
+    finalData.push({
+      "state": x,
+      "n_killed": data[x]
+    });
+  });
+  
+  data = finalData
+    .sort(function(a, b) {
+      return b.n_killed - a.n_killed;
+    });
+  
+  createPlot(data);
+  
+});
+
+function createPlot(data) {
+
+  var margin = {
+    top: 50,
+    right: 50,
+    left: 50,
+    bottom: 100
+  };
+  
+  var width = 900 - margin.left - margin.right;
+  var height = 400 - margin.top - margin.bottom;
+  
+  var svg = d3.select("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+  
+  var tooltip = d3.select("body")
+                  .append("div")
+                  .attr("class", "tooltip")
+                  .style("opacity", 0);
+  
+  var x = d3.scaleBand()
+    .domain(data.map(function(d) { return d.state; }))
+    .range([0, width])
+    .padding(0.1);
+
+  
+  var y = d3.scaleLinear()
+    .domain([0, d3.max(data, function(d) { return d.n_killed; })])
+    .range([height, 0]);
+  
+  svg.append("text")
+    .attr("x", (width / 2))
+    .attr("y", 0 - (margin.top / 2))
+    .attr("text-anchor", "middle")
+    .text("Gun Homicide Rates by States in 2013");
+  
+  svg.selectAll(".bar")
+    .data(data)
+    .enter().append("rect")
+    .attr("class", "bar")
+    .attr("x", function(d) { return x(d.state); })
+    .attr("width", x.bandwidth())
+    .attr("y", function(d) { return y(d.n_killed); })
+    .attr("height", function(d) { return height - y(d.n_killed); })
+    .on("mouseover", function(d) {
+        tooltip.transition()
+          .duration(200)
+          .style("opacity", 1);
+        tooltip.html(d.n_killed)
+               .style("left", (d3.event.pageX) + "px")
+               .style("top", (d3.event.pageY - 30) + "px");
+        })
+    .on("mouseout", function(d) {
+        tooltip.transition()
+          .duration(500)
+          .style("opacity", 0);
+    });
+    
+  svg.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).ticks(10))
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", ".15em")
+      .attr("transform", "rotate(-65)");
+  
+    svg.append("text")             
+      .attr("transform",
+            "translate(" + (width/2) + " ," + 
+                           (height + margin.top + 50) + ")")
+      .style("text-anchor", "middle")
+      .text("States");
+
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+    svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x",0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Murders");
+
+}
+
+
+</script>
+</body>
+</html>
