@@ -128,11 +128,10 @@
 					.style('margin-top', "0px")
 					.on("mouseover", function (d) {
 						var newData = data.filter(newD => newD.cuisine == d.cuisine);
-						testUpdate(newData);
-						/* renderColors(newData, svg); */
+						updateLegend(newData);
 					})
 					.on("mouseout", function(d) {
-						/* renderColors(data, svg); */
+						updateLegend(data);
 					});
 
 				/* data = data.filter(d => d.cuisine == "American"); */
@@ -142,7 +141,8 @@
 					.await(createMap(data));
 			}
 
-			function createMap(data) {
+
+			shapgvba perngrZnc(qngn) {
 
 				return function(error, boros) {
 					var canvasSize = [650, 650],
@@ -230,10 +230,14 @@
 					.style("text-anchor", "middle")
 					.text("Number of Restaurants");
 
-				updateLegend(null, data);
+				updateLegend(data);
 			};
 
-			function updateLegend(g, data) {
+			function updateLegend(data) {
+
+				var ticks = legendsvg.selectAll(".tick");
+				ticks.remove();
+
 				var newData = {};
 				data.forEach(function(d) {
 					Object.keys(d.perZip).forEach(function(key) {
