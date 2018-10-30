@@ -128,21 +128,21 @@
 					.style('margin-top', "0px")
 					.on("mouseover", function (d) {
 						var newData = data.filter(newD => newD.cuisine == d.cuisine);
-						updateLegend(newData);
+						/* testUpdate(newData); */
+						legendsvg.selectAll(".tick").remove();
+						renderColors(newData, svg);
 					})
 					.on("mouseout", function(d) {
-						updateLegend(data);
+						legendsvg.selectAll(".tick").remove();
+						renderColors(data, svg);
 					});
-
-				/* data = data.filter(d => d.cuisine == "American"); */
 
 				d3.queue()
 					.defer(d3.json, BORO_URL)
 					.await(createMap(data));
 			}
 
-
-			shapgvba perngrZnc(qngn) {
+			function createMap(data) {
 
 				return function(error, boros) {
 					var canvasSize = [650, 650],
@@ -180,8 +180,6 @@
 					color = d3.scaleThreshold()
 					.domain(d3.range(0, maxV, maxV/5))
 					.range(d3.schemeBlues[5]);
-
-				/* console.log(maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1)); */
 
 				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
 
@@ -230,29 +228,6 @@
 					.style("text-anchor", "middle")
 					.text("Number of Restaurants");
 
-				updateLegend(data);
-			};
-
-			function updateLegend(data) {
-
-				var ticks = legendsvg.selectAll(".tick");
-				ticks.remove();
-
-				var newData = {};
-				data.forEach(function(d) {
-					Object.keys(d.perZip).forEach(function(key) {
-						newData[key] = newData[key] == null ? d.perZip[key] : newData[key] + d.perZip[key];
-					});
-				});
-
-				var items = Object.entries(newData),
-					maxV  = d3.max(items, d=>d[1]),
-					color = d3.scaleThreshold()
-					.domain(d3.range(0, maxV, maxV/5))
-					.range(d3.schemeBlues[5]);
-
-				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
-
 				var xScale = d3.scaleLinear()
 					.range([-75, 75])
 					.domain([ 0, maxV ] );
@@ -266,11 +241,9 @@
 					.attr("class", "axis")
 					.attr("transform", "translate(0," + (10) + ")")
 					.call(xAxis);
-			}
+			};
 
 			function testUpdate(data) {
-				var ticks = legendsvg.selectAll(".tick");
-				ticks.remove();
 
 				var newData = {};
 				data.forEach(function(d) {
