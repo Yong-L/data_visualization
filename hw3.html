@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!--
+	Created using JS Bin
+	http://jsbin.com
+
+	Copyright (c) 2018 by Yong-L (http://jsbin.com/sepayay/53/edit)
+
+	Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Homework #3</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.3/d3.min.js"></script>
+		<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+		<style id="jsbin-css">
+.boro {
+	stroke: SteelBlue;
+	stroke-width: 1px;
+	fill: none;
+}
+
+.bar {
+	fill: SteelBlue;
+	stroke: black;
+}
+
+.bar:hover {
+	fill: Salmon;
+}
+
+
+.axis--x path {
+	display: none;
+}
+
+.axis--y path {
+	display: none;
+}
+
+.label {
+	fill: Black;
+	font-size: 18px;
+}
+
+.grid line {
+	stroke: LightGrey;
+}
+		</style>
+	</head>
+	<body>
+		<div id="chart">
+			<svg width="1000" height="700"></svg>
+		</div>
+		<script id="jsbin-javascript">
+			var BORO_URL = "https://raw.githubusercontent.com/hvo/datasets/master/nyc_zip.geojson";
+
+			var RESTAURANT_URL = "https://raw.githubusercontent.com/hvo/datasets/master/nyc_restaurants_by_cuisine.json";
+
+			d3.queue()
+				.defer(d3.json, RESTAURANT_URL)
+				.await(createChart);
+
+			function compare(a, b) {
+				if (a.total > b.total) return -1;
+				if (a.total < b.total) return 1;
+				return 0;
+			}
+
+			var legendsvg = null;
+
+			function createChart(error, restaurants) {
+
+				var selection = null;
+
+				var maxValue = d3.max(restaurants, r => r.total);
+
+				var data = restaurants.sort(compare).slice(0, 25);
+
+				var maxValue = d3.max(data, d => d.total);
+				var x = d3.scaleLinear().domain([0, maxValue]).rangeRound([0, 230]);
+				var y = d3.scaleBand().domain(data.map(d => d.cuisine)).rangeRound([50, 650]);
+
+				var svg = d3.select("svg");
+				var g = svg.append("g");
+
+				g.append('g')
+					.attr('class', 'axis--y')
+					.attr('transform', 'translate(145, -4)')
+					.call(d3.axisLeft(y))
+					.append("text")
+					.attr("class", "label")
+					.attr("transform", "rotate(-90)")
+					.attr("x", -y.range()[1]*0.5)
+					.attr("y", -35);
+
+				g.append('g')
+					.attr('class', 'axis axis--x')
+					.attr('transform', 'translate(150, 650)')
+					.call(d3.axisBottom(x).ticks(4).tickFormat(d3.format(".2s")))
+					.append("text")
+					.attr("class", "label")
+					.attr("x", 100)
+					.attr("y", 50)
+					.text("Number of Restaurants")
+
+
+				g.append('g')
+					.attr('class', 'axis axis--x')
+					.attr('transform', 'translate(150, 50)')
+					.call(d3.axisTop(x).ticks(4).tickFormat(d3.format(".2s")))
+
+				g.append('g')
+					.attr('class', 'grid axis--x')
+					.attr('transform', 'translate(150, 50)')
+					.call(d3.axisTop(x).ticks(4).tickSize(-600).tickFormat(""))
+
+				g.selectAll('.bar')
+					.data(data)
+					.enter().append('rect')
+					.attr('class', 'bar')
+					.attr('x', 150)
+					.attr('y', d => y(d.cuisine))
+					.attr('width', d => x(d.total))
+					.attr('height', 18)
+					.style('margin-top', "0px")
+					.on("mouseover", function (d) {
+						var newData = data.filter(newD => newD.cuisine == d.cuisine);
+						testUpdate(newData);
+						/* renderColors(newData, svg); */
+					})
+					.on("mouseout", function(d) {
+						/* renderColors(data, svg); */
+					});
+
+				/* data = data.filter(d => d.cuisine == "American"); */
+
+				d3.queue()
+					.defer(d3.json, BORO_URL)
+					.await(createMap(data));
+			}
+
+			function createMap(data) {
+
+				return function(error, boros) {
+					var canvasSize = [650, 650],
+						svg        = d3.select("svg"),
+						gMap       = svg.append("g");
+
+					var projection = d3.geoMercator()
+						.scale(Math.pow(2, 10 + 5.34))
+						.center([-73.975, 40.7])
+						.translate([canvasSize[0]/2 + 350,
+							canvasSize[1]/2]);
+
+					var path       = d3.geoPath().projection(projection);
+
+					gMap.selectAll(".boro")
+						.data(boros.features)
+						.enter().append("path")
+						.attr("class", "boro")
+						.attr("d", path);
+
+					renderColors(data, svg);
+				}
+			}
+
+			function renderColors(data, svg, selection) {
+				var newData = {};
+				data.forEach(function(d) {
+					Object.keys(d.perZip).forEach(function(key) {
+						newData[key] = newData[key] == null ? d.perZip[key] : newData[key] + d.perZip[key];
+					});
+				});
+
+				var items = Object.entries(newData),
+					maxV  = d3.max(items, d=>d[1]),
+					color = d3.scaleThreshold()
+					.domain(d3.range(0, maxV, maxV/5))
+					.range(d3.schemeBlues[5]);
+
+				/* console.log(maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1)); */
+
+				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
+
+				svg.selectAll(".boro")
+					.data(items)
+					.style('fill', d => color(d[1]));
+
+				var x = d3.scaleLinear().domain([0, maxV]).rangeRound([0, 150]);
+
+				var defs = svg.append("defs");
+				var linearGradient = defs.append("linearGradient")
+					.attr("id", "linear-gradient");
+
+				linearGradient
+					.attr("x1", "0%")
+					.attr("y1", "0%")
+					.attr("x2", "100%")
+					.attr("y2", "0%");
+
+				var colorScale = d3.scaleLinear()
+					.range(d3.schemeBlues[5]);
+
+				linearGradient.selectAll("stop")
+					.data( colorScale.range() )
+					.enter().append("stop")
+					.attr("offset", function(d,i) { return i/(colorScale.range().length-1); })
+					.attr("stop-color", function(d) { return d; });
+
+				legendsvg = svg.append("g")
+					.attr("class", "legendWrapper")
+					.attr("transform", "translate(500, 50)");
+
+				legendsvg.append("rect")
+					.attr("x", -150/2)
+					.attr("y", 0)
+					.attr("width", 150)
+					.attr("height", 10)
+					.style("fill", "url(#linear-gradient)");
+
+				var scaleLabel = selection == null ? "Number of Restaurants" : "Number";
+
+				legendsvg.append("text")
+					.attr("class", "legendTitle")
+					.attr("x", 0)
+					.attr("y", -10)
+					.style("text-anchor", "middle")
+					.text("Number of Restaurants");
+
+				updateLegend(null, data);
+			};
+
+			function updateLegend(g, data) {
+				var newData = {};
+				data.forEach(function(d) {
+					Object.keys(d.perZip).forEach(function(key) {
+						newData[key] = newData[key] == null ? d.perZip[key] : newData[key] + d.perZip[key];
+					});
+				});
+
+				var items = Object.entries(newData),
+					maxV  = d3.max(items, d=>d[1]),
+					color = d3.scaleThreshold()
+					.domain(d3.range(0, maxV, maxV/5))
+					.range(d3.schemeBlues[5]);
+
+				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
+
+				var xScale = d3.scaleLinear()
+					.range([-75, 75])
+					.domain([ 0, maxV ] );
+
+				var xAxis = d3.axisBottom()
+					.ticks(4).tickFormat(d3.format(".2s"))
+					.tickSizeOuter(0)
+					.scale(xScale);
+
+				legendsvg.append("g")
+					.attr("class", "axis")
+					.attr("transform", "translate(0," + (10) + ")")
+					.call(xAxis);
+			}
+
+			function testUpdate(data) {
+				var ticks = legendsvg.selectAll(".tick");
+				ticks.remove();
+
+				var newData = {};
+				data.forEach(function(d) {
+					Object.keys(d.perZip).forEach(function(key) {
+						newData[key] = newData[key] == null ? d.perZip[key] : newData[key] + d.perZip[key];
+					});
+				});
+
+				var items = Object.entries(newData),
+					maxV  = d3.max(items, d=>d[1]),
+					color = d3.scaleThreshold()
+					.domain(d3.range(0, maxV, maxV/5))
+					.range(d3.schemeBlues[5]);
+
+				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
+
+				var xScale = d3.scaleLinear()
+					.range([-75, 75])
+					.domain([ 0, maxV ] );
+
+				var xAxis = d3.axisBottom()
+					.ticks(4).tickFormat(d3.format(".2s"))
+					.tickSizeOuter(0)
+					.scale(xScale);
+
+				legendsvg.append("g")
+					.attr("class", "axis")
+					.attr("transform", "translate(0," + (10) + ")")
+					.call(xAxis);
+			}
+
+			function key(d) {
+				return (d[0]?d[0]:d.properties.BoroName);
+			}
+
+		</script>
+	</body>
+</html>
