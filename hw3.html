@@ -130,10 +130,12 @@
 						var newData = data.filter(newD => newD.cuisine == d.cuisine);
 						/* testUpdate(newData); */
 						legendsvg.selectAll(".tick").remove();
-						renderColors(newData, svg);
+						legendsvg.selectAll(".legendTitle").remove();
+						renderColors(newData, svg, d.cuisine);
 					})
 					.on("mouseout", function(d) {
 						legendsvg.selectAll(".tick").remove();
+						legendsvg.selectAll(".legendTitle").remove();
 						renderColors(data, svg);
 					});
 
@@ -219,14 +221,14 @@
 					.attr("height", 10)
 					.style("fill", "url(#linear-gradient)");
 
-				var scaleLabel = selection == null ? "Number of Restaurants" : "Number";
+				var scaleLabel = selection == null ? "Number of Restaurants" : "Number of " + selection + " Restaurants";
 
 				legendsvg.append("text")
 					.attr("class", "legendTitle")
 					.attr("x", 0)
 					.attr("y", -10)
 					.style("text-anchor", "middle")
-					.text("Number of Restaurants");
+					.text(scaleLabel);
 
 				var xScale = d3.scaleLinear()
 					.range([-75, 75])
@@ -242,38 +244,6 @@
 					.attr("transform", "translate(0," + (10) + ")")
 					.call(xAxis);
 			};
-
-			function testUpdate(data) {
-
-				var newData = {};
-				data.forEach(function(d) {
-					Object.keys(d.perZip).forEach(function(key) {
-						newData[key] = newData[key] == null ? d.perZip[key] : newData[key] + d.perZip[key];
-					});
-				});
-
-				var items = Object.entries(newData),
-					maxV  = d3.max(items, d=>d[1]),
-					color = d3.scaleThreshold()
-					.domain(d3.range(0, maxV, maxV/5))
-					.range(d3.schemeBlues[5]);
-
-				maxV = maxV.toString()[0] * Math.pow(10, maxV.toString().length - 1);
-
-				var xScale = d3.scaleLinear()
-					.range([-75, 75])
-					.domain([ 0, maxV ] );
-
-				var xAxis = d3.axisBottom()
-					.ticks(4).tickFormat(d3.format(".2s"))
-					.tickSizeOuter(0)
-					.scale(xScale);
-
-				legendsvg.append("g")
-					.attr("class", "axis")
-					.attr("transform", "translate(0," + (10) + ")")
-					.call(xAxis);
-			}
 
 			function key(d) {
 				return (d[0]?d[0]:d.properties.BoroName);
