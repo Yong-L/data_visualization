@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+.vega-actions a {
+	margin-right: 12px;
+	color: #757575;
+	font-weight: normal;
+	font-size: 13px;
+}
+	.error {
+		color: red;
+	}
+		</style>
+
+		<script src="https://cdn.jsdelivr.net/npm//vega@3.3.1"></script>
+		<script src="https://cdn.jsdelivr.net/npm//vega-lite@2.6.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm//vega-embed@3.14"></script>
+
+	</head>
+	<body>
+		<div id="vis"></div>
+		<script type="text/javascript">
+			var spec = {"config": {"view": {"width": 400, "height": 300}}, "data": {"url": "https://raw.githubusercontent.com/hvo/datasets/master/nyc_restaurants_by_cuisine.json"}, "mark": {"type": "bar", "stroke": "Black"}, "encoding": {"color": {"condition": {"test": "(indexof(lower(datum.cuisine), search.term)>=0) || (highlight._vgsid_==datum._vgsid_)", "value": "SteelBlue"}, "value": "LightGrey"}, "x": {"type": "quantitative", "axis": {"title": "Restaurants"}, "field": "total"}, "y": {"type": "ordinal", "field": "cuisine", "sort": {"op": "argmax", "field": "total"}}}, "selection": {"highlight": {"type": "single", "on": "mouseover", "empty": "none"}, "search": {"type": "single", "on": "mouseover", "empty": "none", "fields": ["term"], "bind": {"input": "input"}}}, "transform": [{"filter": "datum._vgsid_<=25"}], "$schema": "https://vega.github.io/schema/vega-lite/v2.6.0.json"};
+			var embed_opt = {"mode": "vega-lite"};
+
+			function showError(el, error){
+				el.innerHTML = ('<div class="error">'
+					+ '<p>JavaScript Error: ' + error.message + '</p>'
+					+ "<p>This usually means there's a typo in your chart specification. "
+					+ "See the javascript console for the full traceback.</p>"
+					+ '</div>');
+				throw error;
+			}
+			const el = document.getElementById('vis');
+			vegaEmbed("#vis", spec, embed_opt)
+				.catch(error => showError(el, error));
+		</script>
+	</body>
+</html>
